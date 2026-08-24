@@ -11,10 +11,6 @@ Supported sources:
 
 The application uses LangChain, Chroma, Streamlit, local HuggingFace embeddings by default, and a pluggable LLM backend.
 
-See [`PROBLEM_DOMAIN.md`](./PROBLEM_DOMAIN.md) for the problem context and [`BENCHMARK_NOTES.md`](./BENCHMARK_NOTES.md) for the evidence behind the PDF and web ingestion decisions.
-
-> **Status:** Phase 1 implementation is substantially complete. Remaining Phase 1 work is empirical validation of the real provider environment, retrieval-threshold calibration, and final clean-machine verification.
-
 ## Features
 
 - **Multi-source ingestion** — PDF, TXT, Markdown, and web pages with file, count, size, and URL validation.
@@ -73,8 +69,6 @@ rag-chatbot/
 ├── .env.example
 ├── README.md
 ├── PROBLEM_DOMAIN.md
-├── BENCHMARK_NOTES.md
-├── PHASE1_STATUS.md
 ├── data/
 │   └── .gitkeep
 └── src/
@@ -335,18 +329,6 @@ can be ambiguous without conversation history.
 
 The application therefore reformulates follow-up questions into standalone retrieval queries before searching the vector store.
 
-### PDF ingestion
-
-PyMuPDF was selected after benchmarking against the previous PDF loader implementation.
-
-See [`BENCHMARK_NOTES.md`](./BENCHMARK_NOTES.md) for the measured comparison and its limitations.
-
-### Web ingestion
-
-WebBaseLoader was retained after comparison with Trafilatura in the tested environment.
-
-The benchmark was environment-specific and should not be interpreted as proof that Trafilatura is universally inferior.
-
 ### Provider separation
 
 LLM and embedding providers are intentionally independent.
@@ -430,49 +412,3 @@ invalid retrieval threshold
 ```
 
 The resulting error identifies the invalid configuration value.
-
-## Validation status
-
-Phase 1 implementation includes:
-
-- stable Chroma persistence
-- restart/reload support
-- embedding compatibility checks
-- stable metadata
-- retrieval abstention
-- configuration validation
-- upload validation
-- URL validation
-- temporary-file cleanup
-- custom exceptions
-- benchmark-backed ingestion decisions
-
-Remaining evidence gaps are:
-
-- complete clean-machine installation verification
-- real Groq/OpenAI/Ollama provider validation
-- empirical retrieval-threshold calibration
-
-Therefore, the appropriate project characterization is:
-
-> **Production-oriented RAG application with substantially completed Phase 1 correctness work; final empirical validation remains.**
-
-## Benchmark evidence
-
-See [`BENCHMARK_NOTES.md`](./BENCHMARK_NOTES.md) for:
-
-- PyMuPDF vs. pypdf
-- WebBaseLoader/BeautifulSoup vs. Trafilatura
-
-The benchmark document explicitly records the test limitations rather than presenting the results as universally generalizable.
-
-## Possible future extensions
-
-- Retrieval reranking
-- OCR for scanned PDFs
-- Larger-scale vector-store alternatives
-- Evaluation datasets and automated RAG evaluation
-- Tracing and observability
-- Per-user document isolation
-- Authentication
-- Per-document deletion and re-indexing
