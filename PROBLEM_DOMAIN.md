@@ -7,6 +7,7 @@ Organizations and students often have knowledge distributed across PDFs, handboo
 A generic LLM may not have access to these private or recently updated documents and may generate answers that are not grounded in the user's actual sources.
 
 **DocuMind** addresses this by retrieving passages from documents explicitly provided by the user and supplying those passages to an LLM for answer generation.
+The retrieval layer combines **semantic similarity retrieval** with **BM25 lexical retrieval** using **Reciprocal Rank Fusion (RRF)**. This allows DocuMind to handle both conceptually similar queries and queries that depend on exact terminology.
 
 Supported sources include:
 
@@ -35,3 +36,4 @@ The system is designed to produce answers that are:
 - **Verifiability** — retrieved source chunks allow users to inspect the information used as context.
 - **Cost and flexibility** — new documents can be indexed without fine-tuning the LLM, and the LLM and embedding providers can be changed independently.
 - **Scope control** — retrieval provides domain-specific context to the generation step, which can reduce unsupported answers.
+- **Retrieval robustness** — combining semantic and lexical retrieval helps recover relevant passages when a query uses either conceptually similar wording or exact terms from the source documents.

@@ -1,27 +1,42 @@
 # DocuMind — RAG Chatbot with LangChain
 
-A Retrieval-Augmented Generation (RAG) chatbot designed to answer questions using retrieved passages from user-provided documents rather than relying solely on general model knowledge.
+A Retrieval-Augmented Generation (RAG) chatbot that answers questions using retrieved passages from user-provided documents rather than relying solely on general model knowledge.
 
-Supported sources:
+**Supported sources:**
 
 - PDF
 - TXT
 - Markdown
 - Web pages
 
-The application uses LangChain, Chroma, Streamlit, local HuggingFace embeddings by default, and a pluggable LLM backend.
+The application uses **LangChain, Chroma, Streamlit, local HuggingFace embeddings**, and pluggable LLM and embedding providers.
+
+---
+
+## Live Demo
+
+**Streamlit Cloud:**  
+> [https://documind-rag-chatbot-fwu4hg6gps85maecsmnyik.streamlit.app/]
+
+---
 
 ## Features
 
 - **Multi-source ingestion** — PDF, TXT, Markdown, and web pages with file, count, size, and URL validation.
-- **Persistent knowledge base** — Chroma uses one deterministic collection that survives application restarts.
-- **Embedding compatibility checks** — persisted indexes record the embedding configuration and reject incompatible reloads.
+- **Persistent knowledge base** — Chroma uses a deterministic collection that survives application restarts.
+- **Embedding compatibility checks** — persisted indexes record embedding configuration and reject incompatible reloads.
+- **Hybrid retrieval** — combines semantic similarity retrieval with BM25 lexical retrieval using Reciprocal Rank Fusion (RRF).
+- **Neighbor expansion** — optionally includes nearby chunks from the same source document to preserve local context.
 - **Relevance-based abstention** — weak retrieval results can cause the chatbot to abstain instead of generating from poor context.
 - **Multi-turn chat** — follow-up questions are reformulated into standalone retrieval queries.
-- **Source display** — retrieved source chunks are shown with file/page or web-source metadata.
+- **Source citations** — answers reference retrieved source chunks using numbered citations.
+- **Source display** — retrieved source chunks show file/page or web-source metadata.
 - **Provider abstraction** — Groq, OpenAI, and Ollama for chat; HuggingFace, OpenAI, and Ollama for embeddings.
 - **Streaming responses** — generated answers are streamed through the Streamlit interface.
-- **Optional diagnostics** — retrieval scores, rewritten query, and latency can be displayed.
+- **Optional retrieval diagnostics** — rewritten query, retrieval scores, threshold, and latency can be displayed.
+- **Configuration validation** — invalid configuration values raise explicit configuration errors.
+
+---
 
 ## Architecture
 
@@ -37,15 +52,25 @@ flowchart LR
     H[User Question] --> I{Conversation History?}
     I -->|Yes| J[Standalone Query Reformulation]
     I -->|No| K[Original Query]
-    J --> L[Scored Similarity Retrieval]
+
+    J --> L[Hybrid Retrieval]
     K --> L
     G --> L
 
-    L --> M{Best Score >= Threshold?}
-    M -->|No| N[Abstain]
-    M -->|Yes| O[Grounded Prompt]
-    O --> P[LLM]
-    P --> Q[Answer + Retrieved Sources]
+    L --> M[Semantic Retrieval]
+    L --> N[BM25 Lexical Retrieval]
+
+    M --> O[Reciprocal Rank Fusion]
+    N --> O
+
+    O --> P[Top Hybrid Candidates]
+    P --> Q[Neighbor Expansion]
+    Q --> R{Best Score >= Threshold?}
+
+    R -->|No| S[Abstain]
+    R -->|Yes| T[Grounded Prompt]
+    T --> U[LLM]
+    U --> V[Answer + Citations + Sources]
 ```
 
 ### Module responsibilities
@@ -53,7 +78,7 @@ flowchart LR
 | Stage | Module | Responsibility |
 |---|---|---|
 | Ingestion | `src/ingestion.py` | Validate, load, clean, assign metadata, and chunk documents |
-| Indexing | `src/vectorstore.py` | Build, persist, reload, and validate the Chroma index |
+| Indexing + Retrieval | `src/vectorstore.py` | Build, persist, reload, validate, and perform semantic/BM25 hybrid retrieval |
 | Providers | `src/llm_factory.py` | Create LLM and embedding provider instances |
 | Retrieval + generation | `src/rag_chain.py` | Reformulate queries, retrieve, abstain, and generate answers |
 | Interface | `app.py` | Streamlit UI and application orchestration |
@@ -194,18 +219,25 @@ Question
    ↓
 History-aware reformulation
    ↓
-Embedding
-   ↓
-Similarity retrieval
-   ↓
-Relevance check
-   ↓
-Grounded prompt
-   ↓
-LLM
-   ↓
-Answer + retrieved sources
-```
+ ┌─────────────────────────────┐
+ │                             │
+Semantic Retrieval        BM25 Retrieval
+ │                             │
+ └──────────────┬──────────────┘
+                ↓
+     Reciprocal Rank Fusion
+                ↓
+       Hybrid Ranked Results
+                ↓
+        Neighbor Expansion
+                ↓
+        Relevance Check
+                ↓
+        Grounded Prompt
+                ↓
+               LLM
+                ↓
+     Answer + Retrieved Sources
 
 Follow-up questions can use previous conversation context.
 
