@@ -16,7 +16,7 @@ The application uses **LangChain, Chroma, Streamlit, local HuggingFace embedding
 ## Live Demo
 
 **Streamlit Cloud:**  
-> [https://documind-rag-chatbot-fwu4hg6gps85maecsmnyik.streamlit.app/]
+> https://documind-rag-chatbot-fwu4hg6gps85maecsmnyik.streamlit.app/
 
 ---
 
