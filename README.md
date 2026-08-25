@@ -237,7 +237,7 @@ Semantic Retrieval        BM25 Retrieval
                 ↓
                LLM
                 ↓
-     Answer + Retrieved Sources
+     Answer + Retrieved Sources```
 
 Follow-up questions can use previous conversation context.
 
