@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import uuid
 import tempfile
 from pathlib import Path
 
@@ -151,6 +152,7 @@ def _initialize_session_state() -> None:
         "startup_load_attempted": False,
         "groq_api_key": "",
         "openai_api_key": "",
+        "kb_collection_name": None,
     }
 
     for key, value in defaults.items():
@@ -158,7 +160,10 @@ def _initialize_session_state() -> None:
 
 
 _initialize_session_state()
-
+if st.session_state.kb_collection_name is None:
+    st.session_state.kb_collection_name = (
+        f"{config.CHROMA_COLLECTION_NAME}_{uuid.uuid4().hex}"
+    )
 
 @st.cache_resource(show_spinner="Loading embedding model...")
 def _load_embeddings(
@@ -336,7 +341,9 @@ def _try_auto_load_existing_kb() -> bool:
     if st.session_state.vectorstore is not None:
         return True
 
-    metadata = vectorstore.load_index_metadata()
+    metadata = vectorstore.load_index_metadata(
+    collection_name=st.session_state.kb_collection_name,
+        )
 
     if metadata is None:
         return False
@@ -356,6 +363,7 @@ def _try_auto_load_existing_kb() -> bool:
             embeddings=embeddings,
             embedding_provider=metadata.embedding_provider,
             embedding_model=metadata.embedding_model,
+            collection_name=st.session_state.kb_collection_name,
         )
 
         st.session_state.vectorstore = vector_store
@@ -507,7 +515,9 @@ with st.sidebar:
         with st.container(border=True):
             st.markdown("### Sources")
 
-            existing_index = vectorstore.index_exists()
+            existing_index = vectorstore.index_exists(
+                collection_name=st.session_state.kb_collection_name,
+            )
 
             if (
                 st.session_state.vectorstore is None
@@ -622,6 +632,7 @@ with st.sidebar:
                                 embeddings=embeddings,
                                 embedding_provider=embedding_provider,
                                 embedding_model=embedding_model,
+                                collection_name=st.session_state.kb_collection_name,
                             )
 
                             sources = sorted(
