@@ -16,6 +16,7 @@ import config
 from src import vectorstore as vectorstore_module
 from src.exceptions import RetrievalError
 
+# Coordinate history-aware retrieval, source formatting, and answer diagnostics.
 
 CONTEXTUALIZE_SYSTEM_PROMPT = (
     "Given the conversation history and a follow-up user question, rephrase "
@@ -63,6 +64,7 @@ def trim_history(
     max_messages = effective_turns * 2
     trimmed = chat_history[-max_messages:]
 
+    # Drop an orphaned oldest message so reformulation always sees complete turns.
     if len(trimmed) % 2 != 0:
         trimmed = trimmed[1:]
 
@@ -114,6 +116,7 @@ class ConversationalRAGChain:
                 f"Retriever k must be > 0, got {self.k}."
             )
 
+        # Ellipsis preserves the configured default while None explicitly disables abstention.
         self.score_threshold = (
             config.RETRIEVAL_SCORE_THRESHOLD
             if score_threshold is ...
@@ -145,6 +148,7 @@ class ConversationalRAGChain:
             ]
         )
 
+        # Resolve follow-up references before retrieval so search sees a standalone query.
         self._contextualize_chain = (
             contextualize_prompt
             | self.llm
@@ -227,6 +231,7 @@ class ConversationalRAGChain:
 
         documents = [document for document, _, _ in results]
 
+        # Abstention uses semantic relevance; RRF ranks candidates but is not calibrated.
         semantic_scores = [
             float(semantic_score)
             for _, _, semantic_score in results
@@ -445,6 +450,7 @@ class ConversationalRAGChain:
 
         def timed_stream():
             start = time.perf_counter()
+            # Buffer tokens so citation cleanup runs before the answer is emitted.
             buffer: list[str] = []
 
             try:

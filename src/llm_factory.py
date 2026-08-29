@@ -8,6 +8,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 
 import config
 from src.exceptions import ProviderConfigurationError
+# Provider SDKs are imported only for the selected backend to keep unused integrations optional.
 
 
 class MissingAPIKeyError(ProviderConfigurationError):
@@ -26,6 +27,7 @@ def _get_override(
 
     value = str(value).strip()
 
+    # Reject empty overrides to avoid silently selecting an unintended model or endpoint.
     if not value:
         raise ProviderConfigurationError(
             f"{name} must not be empty."
@@ -142,6 +144,7 @@ def get_embeddings(
                     config.HUGGINGFACE_EMBEDDING_MODEL,
                 ),
                 encode_kwargs={
+                    # Keep local embedding vectors consistent with the cosine-distance index.
                     "normalize_embeddings": True,
                 },
             )

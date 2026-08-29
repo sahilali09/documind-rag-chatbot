@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 from src.exceptions import ConfigurationError
 
+# Load .env values before resolving the module-level settings below.
 load_dotenv()
 
 VALID_LLM_PROVIDERS = {"groq", "openai", "ollama"}
@@ -74,6 +75,7 @@ def _get_optional_float(name: str) -> float | None:
         ) from exc
 
 
+# Keep provider choices environment-driven so deployments can switch backends without code changes.
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq").strip().lower()
 
 GROQ_MODEL = os.getenv(
@@ -118,6 +120,7 @@ OLLAMA_EMBEDDING_MODEL = os.getenv(
     "nomic-embed-text",
 ).strip()
 
+# These settings are stored with each index; changing them requires a rebuild.
 CHUNK_SIZE = _get_int("CHUNK_SIZE", 1000)
 CHUNK_OVERLAP = _get_int("CHUNK_OVERLAP", 150)
 
@@ -134,6 +137,7 @@ CHROMA_COLLECTION_NAME = os.getenv(
     "rag_chatbot",
 ).strip()
 
+# Bump this when indexing semantics change to reject incompatible persisted indexes.
 INDEX_VERSION = os.getenv(
     "INDEX_VERSION",
     "1",
@@ -141,6 +145,7 @@ INDEX_VERSION = os.getenv(
 
 RETRIEVER_K = _get_int("RETRIEVER_K", 4)
 
+# An unset threshold uses the default; an explicitly blank value disables abstention.
 if os.getenv("RETRIEVAL_SCORE_THRESHOLD") is None:
     RETRIEVAL_SCORE_THRESHOLD = 0.2
 else:
@@ -166,6 +171,7 @@ SYSTEM_PROMPT = os.getenv(
 ).strip()
 
 
+# Collect all violations before raising so operators can correct configuration in one pass.
 def validate() -> None:
     errors: list[str] = []
 

@@ -14,6 +14,7 @@ from rank_bm25 import BM25Okapi
 import config
 from src.exceptions import VectorStoreError
 
+# Manage persistent Chroma indexes and hybrid semantic/lexical retrieval.
 
 INDEX_META_SUFFIX = ".index_meta.json"
 
@@ -23,6 +24,7 @@ RRF_K = 60
 NEIGHBOR_WINDOW = 1
 
 
+# Store retrieval-affecting settings separately so incompatible indexes are rejected.
 @dataclass(frozen=True)
 class IndexMetadata:
     """Configuration recorded when a Chroma index was built."""
@@ -202,6 +204,7 @@ def reset_collection(
     except Exception as exc:
         message = str(exc).lower()
 
+        # A missing collection is already reset, keeping initial and replacement builds idempotent.
         missing_markers = (
             "does not exist",
             "not found",
@@ -257,6 +260,7 @@ def build_vectorstore(
             embedding=embeddings,
             collection_name=collection_name,
             persist_directory=persist_directory,
+            # Scores are normalized as 1 - distance during relevance retrieval.
             collection_metadata={"hnsw:space": "cosine"},
         )
     except Exception as exc:
@@ -278,6 +282,7 @@ def build_vectorstore(
             persist_directory,
             metadata,
         )
+    # Roll back the collection rather than leaving it without compatibility metadata.
     except VectorStoreError:
         try:
             reset_collection(
@@ -463,6 +468,7 @@ def _load_all_documents(
 ) -> list[Document]:
     """Load indexed text and metadata from Chroma."""
     try:
+        # Hybrid BM25 retrieval needs the complete corpus, which Chroma's retriever does not expose.
         result = vectorstore._collection.get(
             include=["documents", "metadatas"]
         )
@@ -744,6 +750,7 @@ def hybrid_search_with_relevance(
         if document is not None:
             seed_documents.append(document)
 
+    # Restore adjacent chunks after ranking because context can span chunk boundaries.
     expanded_documents = _expand_neighbors(
         seed_documents,
         all_documents,

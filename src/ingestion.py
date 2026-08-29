@@ -11,6 +11,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import config
 from src.exceptions import DocumentLoadError
 
+# Normalize local and web sources into metadata-rich chunks for retrieval.
 SUPPORTED_FILE_EXTENSIONS = {".pdf", ".txt", ".md"}
 
 _ALLOWED_URL_SCHEMES = {"http", "https"}
@@ -125,6 +126,7 @@ def load_file(file_path: str | Path) -> list[Document]:
     suffix = file_path.suffix.lower()
 
     try:
+        # Include file contents in the ID so same-named uploads do not collide in metadata.
         content_bytes = file_path.read_bytes()
     except OSError as exc:
         raise DocumentLoadError(
@@ -235,6 +237,7 @@ def load_urls(urls: list[str]) -> list[Document]:
         from langchain_community.document_loaders import WebBaseLoader
 
         loader = WebBaseLoader(urls)
+        # Bound remote fetches so an unresponsive URL cannot hold the request indefinitely.
         loader.requests_kwargs = {
             "timeout": _URL_FETCH_TIMEOUT_SECONDS,
         }
@@ -311,6 +314,7 @@ def split_documents(
     if not documents:
         return []
 
+    # Prefer natural text boundaries before smaller splits to keep retrieval chunks coherent.
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=effective_chunk_size,
         chunk_overlap=effective_chunk_overlap,
@@ -319,6 +323,7 @@ def split_documents(
 
     chunks = splitter.split_documents(documents)
 
+    # Number chunks per document so hybrid retrieval can restore adjacent context.
     chunk_counters: dict[str, int] = {}
 
     for chunk in chunks:
@@ -336,6 +341,7 @@ def split_documents(
         page = chunk.metadata.get("page")
 
         if isinstance(page, int):
+            # PDF extractors use zero-based pages; source labels use human page numbers.
             chunk.metadata["display_source"] = (
                 f"{source} (page {page + 1})"
             )

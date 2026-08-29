@@ -160,11 +160,13 @@ def _initialize_session_state() -> None:
 
 
 _initialize_session_state()
+# Keep each browser session's uploaded knowledge base isolated in shared Chroma storage.
 if st.session_state.kb_collection_name is None:
     st.session_state.kb_collection_name = (
         f"{config.CHROMA_COLLECTION_NAME}_{uuid.uuid4().hex}"
     )
 
+# Cache provider resources across Streamlit reruns to avoid reinitializing models.
 @st.cache_resource(show_spinner="Loading embedding model...")
 def _load_embeddings(
     provider: str,
@@ -213,6 +215,7 @@ def _save_uploads_to_temp(
 
     try:
         for uploaded_file in uploaded_files:
+            # Remove client-supplied path components so writes stay inside the temporary directory.
             safe_name = Path(uploaded_file.name).name
             destination = tmp_dir / safe_name
             destination.write_bytes(
@@ -230,6 +233,7 @@ def _save_uploads_to_temp(
         raise
 
 
+# Convert UI-state dictionaries into typed messages so LangChain preserves speaker roles.
 def _history_as_messages(
     messages: list[dict],
 ) -> list:
@@ -388,6 +392,7 @@ def _try_auto_load_existing_kb() -> bool:
 
         return True
 
+    # Startup restoration is best-effort; the app remains usable without a persisted index.
     except (
         ProviderConfigurationError,
         VectorStoreError,
@@ -395,6 +400,7 @@ def _try_auto_load_existing_kb() -> bool:
         return False
 
 
+# Limit automatic recovery to one attempt because Streamlit reruns after every interaction.
 if not st.session_state.startup_load_attempted:
     st.session_state.startup_load_attempted = True
     _try_auto_load_existing_kb()
@@ -654,6 +660,7 @@ with st.sidebar:
                             st.session_state.kb_embedding_model = (
                                 embedding_model
                             )
+                            # Prior turns are grounded in the replaced index and are no longer valid.
                             st.session_state.messages = []
 
                             build_status.update(
@@ -770,6 +777,7 @@ else:
 
 st.write("")
 
+# Replay session state because Streamlit reconstructs the page after every interaction.
 for message in st.session_state.messages:
     role = message.get("role", "assistant")
 
@@ -855,6 +863,7 @@ if question:
                 ),
             )
 
+            # Pass the active question separately so history contains only earlier turns.
             history = _history_as_messages(
                 st.session_state.messages[:-1]
             )
@@ -866,6 +875,7 @@ if question:
                 )
             )
 
+            # Retain the completed response so it can be replayed on the next rerun.
             answer = st.write_stream(
                 token_stream
             )
